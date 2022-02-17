@@ -1,6 +1,0 @@
-falcon
-gunicorn
-requests
-gevent
-msgpack
-fluent-logger

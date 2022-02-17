@@ -45,9 +45,9 @@ services:
       memlock:
         soft: -1
         hard: -1
-    volumes:
-        - ./data/elasticsearch/elk1/logs:/var/log
-        - ./data/elasticsearch/elk1/data:/usr/share/elasticsearch/data
+    # volumes:
+    #     - ./data/elasticsearch/elk1/logs:/var/log
+    #     - ./data/elasticsearch/elk1/data:/usr/share/elasticsearch/data
     networks:
       - efk_stack_network
 
@@ -82,9 +82,9 @@ services:
       ZOO_DATA_LOG_DIR: /data_logs_dir
     networks:
       - efk_stack_network
-    volumes: 
-      - ./data/zookeeper/zoo1/zoo1-data:/data_logs_dir
-      - ./data/zookeeper/zoo1/zoo1-log:/logs_dir
+    # volumes: 
+    #   - ./data/zookeeper/zoo1/zoo1-data:/data_logs_dir
+    #   - ./data/zookeeper/zoo1/zoo1-log:/logs_dir
 
   zoo2:
     image: confluentinc/cp-zookeeper
@@ -101,9 +101,9 @@ services:
       ZOO_DATA_LOG_DIR: /data_logs_dir
     networks:
       - efk_stack_network
-    volumes: 
-      - ./data/zookeeper/zoo2/zoo2-data:/data_logs_dir
-      - ./data/zookeeper/zoo2/zoo2-log:/logs_dir
+    # volumes: 
+    #   - ./data/zookeeper/zoo2/zoo2-data:/data_logs_dir
+    #   - ./data/zookeeper/zoo2/zoo2-log:/logs_dir
 
   zoo3:
     image: confluentinc/cp-zookeeper
@@ -120,9 +120,9 @@ services:
       ZOO_DATA_LOG_DIR: /data_logs_dir
     networks:
       - efk_stack_network
-    volumes: 
-      - ./data/zookeeper/zoo3/zoo3-data:/data_logs_dir
-      - ./data/zookeeper/zoo3/zoo3-log:/logs_dir
+    # volumes: 
+    #   - ./data/zookeeper/zoo3/zoo3-data:/data_logs_dir
+    #   - ./data/zookeeper/zoo3/zoo3-log:/logs_dir
 
 
 
@@ -145,16 +145,19 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_TOOLS_LOG4J_LOGLEVEL: "ERROR"
-      KAFKA_LOG_DIRS: "/kafka/kafka-logs"
-    volumes:
-      - ./data/kafka/kafka1:/kafka/kafka-logs
+      KAFKA_JMX_PORT: 9101
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:19092
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+      # KAFKA_LOG_DIRS: "/var/local/kafka/data"
+    # volumes:
+    #   - ./data/kafka/kafka1:/kafka/kafka-logs
     restart: always
     depends_on:
       - zoo1
       - zoo2
       - zoo3
-      - kafka2
-      - kafka3
     networks:
       - efk_stack_network
 
@@ -174,9 +177,14 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_TOOLS_LOG4J_LOGLEVEL: "ERROR"
-      KAFKA_LOG_DIRS: "/kafka/kafka-logs"
-    volumes:
-      - ./data/kafka/kafka2:/kafka/kafka-logs
+      KAFKA_JMX_PORT: 9101
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:19092
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+      # KAFKA_LOG_DIRS: "/var/local/kafka/data"
+    # volumes:
+    #   - ./data/kafka/kafka2:/kafka/kafka-logs
     depends_on:
       - zoo1
       - zoo2
@@ -200,9 +208,14 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_TOOLS_LOG4J_LOGLEVEL: "ERROR"
-      KAFKA_LOG_DIRS: "/kafka/kafka-logs"
-    volumes:
-      - ./data/kafka/kafka3:/kafka/kafka-logs
+      KAFKA_JMX_PORT: 9101
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:19092
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+      # KAFKA_LOG_DIRS: "/var/local/kafka/data"
+    # volumes:
+    #   - ./data/kafka/kafka3:/kafka/kafka-logs
     depends_on:
       - zoo1
       - zoo2
@@ -220,7 +233,7 @@ services:
     command: ["bash", "./create-topics.sh"]
     working_dir: /scripts
     volumes:
-      - ./scripts:/scripts
+      - ./scripts/kafka_scripts:/scripts
     networks:
       - efk_stack_network
 
@@ -307,6 +320,40 @@ services:
     networks:
       - efk_stack_network
 
+  web2:
+    image: httpd
+    container_name: web2
+    ports:
+      - "81:80"
+    depends_on:
+      - fluentd
+    links:
+      - fluentd
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: httpd.access
+    networks:
+      - efk_stack_network
+
+  web3:
+    image: httpd
+    container_name: web3
+    ports:
+      - "82:80"
+    depends_on:
+      - fluentd
+    links:
+      - fluentd
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: httpd.access
+    networks:
+      - efk_stack_network
+
   nodeServer:
     image: 311200/kafka-poc01
     container_name: nodeServer
@@ -319,18 +366,6 @@ services:
       - kafka1
     networks:
       - efk_stack_network
-
-  python-app-test:
-        container_name: python-app-test
-        build: ./python-app
-        ports:
-          - "7500:611"
-        volumes:
-          - ./python-app/python-app-test/:/usr/src/app
-          - ./python-app/agilecx-data/logs/:/usr/src/logs
-        networks:
-        - efk_stack_network
-
 
 networks:
   efk_stack_network:
