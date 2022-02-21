@@ -2,6 +2,7 @@ version: "3"
 services:
   web:
     image: httpd
+    container_name: web
     ports:
       - "80:80"
     links:
@@ -16,6 +17,7 @@ services:
 
   fluentd:
     build: ./fluentd
+    container_name: fluentd
     volumes:
       - ./fluentd/conf:/fluentd/etc
     links:
@@ -36,6 +38,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.13.1
+    container_name: kibana
     links:
       - "elasticsearch"
     ports:
