@@ -5,5 +5,5 @@ output="/home/karol/Documents/Projects/efk_stack_tests/partymaster_logs/request_
 while IFS= read -r line
 do
   echo "$line" >> $output
-  sleep 2
+  sleep 1
 done < "$input"
