@@ -17,10 +17,19 @@ services:
     container_name: elasticsearch
     environment:
       - "discovery.type=single-node"
+    labels:
+      - co.elastic.logs/module=elasticsearch
+      - co.elastic.logs/fileset.stdout=access
+      - co.elastic.logs/fileset.stderr=error
+      - co.elastic.metrics/module=elasticsearch
+      - co.elastic.metrics/metricsets=status
+      - co.elastic.metrics/hosts='elasticsearch:9200'
     expose:
       - "9200"
     ports:
       - "9200:9200"
+    volumes:
+      - ./data/elasticsearch/esdata01:/usr/share/elasticsearch/data
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.13.1
@@ -29,3 +38,18 @@ services:
       - "elasticsearch"
     ports:
       - "5601:5601"
+    volumes:
+      - ./data/kibana:/usr/share/kibana/data
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:8.0.0
+    container_name: metricbeat
+    user: 0:0
+    environment:
+      - output.elasticsearch.hosts=["elasticsearch:9200"]
+    volumes:
+      - ./metricbeat/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /:/hostfs:ro
